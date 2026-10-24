@@ -1,0 +1,32 @@
+{
+  "name": "전기 회로 가상 실험실",
+  "short_name": "전기회로실험실",
+  "description": "전류계·전압계·옴의 법칙·직렬/병렬 연결을 직접 실험하는 가상 실험실 (MINARI STUDIO)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1f3a5f",
+  "background_color": "#f4f7fb",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
