@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="app-version" content="1.3.0">
+<meta name="app-version" content="1.4.0">
 <title>전기 회로 가상 실험실 · MINARI STUDIO</title>
 <meta name="theme-color" content="#1f3a5f">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%232c5282%22/%3E%3Cstop offset=%221%22 stop-color=%22%231f3a5f%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22url%28%23g%29%22/%3E%3Cpath d=%22M36 318H138M374 318H476%22 stroke=%22%23f08c00%22 stroke-width=%2224%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%3Ccircle cx=%22256%22 cy=%22318%22 r=%22120%22 fill=%22%23fdf8e8%22 stroke=%22%23fff%22 stroke-width=%2210%22/%3E%3Cpath d=%22M198 388L256 238L314 388M219 346H293%22 stroke=%22%231f3a5f%22 stroke-width=%2226%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 fill=%22none%22/%3E%3Cpath d=%22M204 416H308%22 stroke=%22%231f3a5f%22 stroke-width=%2216%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M296 28L206 130H256L226 188L324 80H270Z%22 fill=%22%23ffd43b%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
@@ -146,6 +146,8 @@ select{border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;backgrou
 .sel-note{font-size:12.5px;color:var(--sub);line-height:1.45}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;max-width:90vw;text-align:center}
 #toast.show{opacity:.96}
+.vctl{display:flex;align-items:center;gap:6px;background:#fff3d6;border:2px solid #f0a31a;border-radius:12px;padding:3px 8px;font-weight:800;color:#7a4a00}
+.vval{font-size:19px;min-width:50px;text-align:center;color:#1f3a5f}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin:4px 0}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
 #zoomOv{position:fixed;inset:0;background:rgba(20,28,40,.72);z-index:30;display:flex;align-items:center;justify-content:center;padding:12px}
@@ -203,7 +205,7 @@ select{border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;backgrou
    - 계기는 실제처럼 + 단자 1개, − 단자 3개. 연결한 − 단자가 측정 범위를 결정
    - 전구는 저항 10Ω(일정)로 가정 (정격 6V, 0.6A)
    ============================================================ */
-const VERSION='1.3.0';
+const VERSION='1.4.0';
 const GRID=20;
 const BULB_R=10, BULB_V=6, BULB_P=3.6;
 const TYPES={
@@ -291,6 +293,7 @@ function solveCircuit(){
     c.ta=wt.length?Math.max(...wt):1;c.rng=c.ta-1;
   });
   const par={};const find=a=>{while(par[a]!==a){par[a]=par[par[a]];a=par[a];}return a;};
+  R.find=find;
   S.comps.forEach(c=>{for(let t=0;t<TYPES[c.type].n;t++)par[c.id+':'+t]=c.id+':'+t;});
   S.wires.forEach(w=>{if(par[w.a]===undefined||par[w.b]===undefined)return;const a=find(w.a),b=find(w.b);if(a!==b)par[a]=b;});
   const idx={};let n=0;const net=k=>{const r=find(k);if(idx[r]===undefined)idx[r]=n++;return idx[r];};
@@ -478,7 +481,13 @@ function compSVG(c){
   }
   const hl=sel?`<g transform="rotate(${c.rot})"><rect x="${-T-14}" y="-42" width="${2*T+28}" height="84" rx="14" fill="none" stroke="#ff922b" stroke-width="3" stroke-dasharray="7 5"/></g>`:'';
   const hit=`<g transform="rotate(${c.rot})"><rect x="-44" y="-40" width="88" height="80" fill="transparent"/></g>`;
-  return `<g data-c="${c.id}" transform="translate(${c.x},${c.y})" style="cursor:grab">${hl}<g transform="rotate(${c.rot})">${sym}</g>${hit}${over}</g>`;
+  let vb='';
+  if(c.type==='battery'){
+    const hz=c.rot%180===0,pp=hz?[40,66]:[78,-34],mm=hz?[-40,66]:[78,34];
+    const bt=(q,v,col,tx)=>`<g data-volt="${v}" data-id="${c.id}" style="cursor:pointer"><circle cx="${q[0]}" cy="${q[1]}" r="23" fill="${col}" stroke="#fff" stroke-width="3"/><text x="${q[0]}" y="${q[1]+6}" text-anchor="middle" font-size="17" font-weight="900" fill="#fff">${tx}</text></g>`;
+    vb=bt(pp,1,'#2f9e44','+1V')+bt(mm,-1,'#6c757d','−1V');
+  }
+  return `<g data-c="${c.id}" transform="translate(${c.x},${c.y})" style="cursor:grab">${hl}<g transform="rotate(${c.rot})">${sym}</g>${hit}${over}${vb}</g>`;
 }
 function termSVG(c){
   const T=TYPES[c.type];let s='';
@@ -533,7 +542,7 @@ function fitView(){
   S.comps.forEach(c=>{
     let a,b,d,e;
     if(isMeter(c)){a=c.x-92;b=c.x+92;d=c.y-95;e=c.y+110;}
-    else{const h=c.rot%180===0;a=c.x-(h?84:60);b=c.x+(h?84:60);d=c.y-(h?60:84);e=c.y+(h?60:84);}
+    else{const h=c.rot%180===0;a=c.x-(h?84:60);b=c.x+(h?84:60);d=c.y-(h?60:84);e=c.y+(h?60:84);if(c.type==='battery'){if(h)e+=36;else b+=62;}}
     x0=Math.min(x0,a);x1=Math.max(x1,b);y0=Math.min(y0,d);y1=Math.max(y1,e);
   });
   let w=x1-x0+80,h=y1-y0+80;
@@ -631,7 +640,8 @@ function nearestTerm(p,skip){
 board.addEventListener('pointerdown',e=>{
   e.preventDefault();
   try{board.setPointerCapture(e.pointerId);}catch(_){}
-  const p=svgPt(e),tEl=e.target.closest('[data-term]'),cEl=e.target.closest('[data-c]'),wEl=e.target.closest('[data-w]');
+  const p=svgPt(e),vEl=e.target.closest('[data-volt]'),tEl=e.target.closest('[data-term]'),cEl=e.target.closest('[data-c]'),wEl=e.target.closest('[data-w]');
+  if(vEl){const bc=comp(vEl.dataset.id);if(bc){pushUndo();setVolt(bc.id,bc.val+(+vEl.dataset.volt),true);UI.sel={k:'c',id:bc.id};UI.pend=null;renderToolbar();renderMsgs();renderPanel();}return;}
   if(tEl){UI.drag={kind:'wire',from:tEl.dataset.term,x:p.x,y:p.y,sx:p.x,sy:p.y,moved:false};UI.sel=null;}
   else if(cEl){
     const c=comp(cEl.dataset.c);UI.sel={k:'c',id:c.id};UI.pend=null;
@@ -712,15 +722,15 @@ function renderToolbar(){
   if(UI.sel){
     if(UI.sel.k==='c'){const c=comp(UI.sel.id);if(c){
       right=`<span class="chip">${c.name} ${TYPES[c.type].name}${c.type==='battery'?' · '+c.val+' V':''}</span>`;
-      if(c.type==='battery')right+=`<button class="btn num" data-tb="vm">− 1V</button><button class="btn num pri" data-tb="vp">+ 1V</button>`;
       if(c.type==='resistor')right+=`<select id="ressel" title="저항값">${RES.map(v=>`<option value="${v}" ${v===c.val?'selected':''}>${v} Ω</option>`).join('')}</select>`;
       if(isMeter(c))right+=`<button class="btn" data-tb="zoom">🔎 크게</button>`;
       if(!isMeter(c))right+=`<button class="btn" data-tb="rot">↻ 회전</button>`;
       right+=`<button class="btn danger" data-tb="del">🗑 삭제</button>`;}}
     else right=`<span class="chip">전선</span><button class="btn danger" data-tb="del">🗑 전선 삭제</button>`;
   }
+  const vctl=S.comps.filter(c=>c.type==='battery').map(c=>`<span class="vctl">🔋 ${c.name} 전압<button class="btn num" data-tb="vdown" data-id="${c.id}">－1V</button><b class="vval">${c.val} V</b><button class="btn num pri" data-tb="vup" data-id="${c.id}">＋1V</button></span>`).join('');
   const exSel=`<select id="exsel"><option value="">📂 예제 회로</option><option value="basic">① 기본: 전구 + 전류계 + 전압계</option><option value="ohm">② 옴의 법칙</option><option value="series">③ 저항의 직렬연결</option><option value="parallel">④ 저항의 병렬연결</option></select>`;
-  t.innerHTML=`<button class="btn" data-tb="undo">↶</button><button class="btn" data-tb="clear">🧹</button>${exSel}<button class="btn" data-tb="zin">＋</button><button class="btn" data-tb="zout">－</button><button class="btn" data-tb="fit">⛶ 맞춤</button><button class="btn ${$('#main').classList.contains('wide')?'on':''}" data-tb="wide">↔ 넓게</button><span style="flex:1"></span>${right}`;
+  t.innerHTML=`<button class="btn" data-tb="undo">↶</button><button class="btn" data-tb="clear">🧹</button>${exSel}${vctl}<button class="btn" data-tb="zin">＋</button><button class="btn" data-tb="zout">－</button><button class="btn" data-tb="fit">⛶ 맞춤</button><button class="btn ${$('#main').classList.contains('wide')?'on':''}" data-tb="wide">↔ 넓게</button><span style="flex:1"></span>${right}`;
 }
 $('#toolbar').addEventListener('click',e=>{
   const b=e.target.closest('[data-tb]');if(!b)return;
@@ -729,8 +739,7 @@ $('#toolbar').addEventListener('click',e=>{
   else if(a==='clear'){if(S.comps.length){mut(()=>{S.comps=[];S.wires=[];UI.sel=null;UI.pend=null;});}}
   else if(a==='rot')rotSel();
   else if(a==='del')delSel();
-  else if(a==='vm'&&c){pushUndo();setVolt(c.id,c.val-1,true);renderPanel();}
-  else if(a==='vp'&&c){pushUndo();setVolt(c.id,c.val+1,true);renderPanel();}
+  else if(a==='vdown'||a==='vup'){const bc=comp(b.dataset.id);if(bc){pushUndo();setVolt(bc.id,bc.val+(a==='vup'?1:-1),true);renderPanel();}}
   else if(a==='zoom'&&c){UI.zoom=true;renderZoom();}
   else if(a==='zin')zoomBy(0.8);
   else if(a==='zout')zoomBy(1.25);
@@ -846,7 +855,7 @@ function missionHTML(){
       <li>R1=10Ω, R2=20Ω, 전원 6V. A1, V1, V2, 전원 E1 값을 <b>📌 기록</b>해요. (V1은 3V 단자, V2는 15V 단자)</li>
       <li>전류계를 R2와 전원 − 사이로 옮겨 보세요. 전류 값이 달라지나요?</li>
       <li>V1+V2는 얼마인가요? 전원 전압과 비교해 봐요. 전압계를 하나 더 놓아 R1·R2 <b>전체</b> 양 끝에 연결해 봐도 좋아요.</li>
-      <li>전체 전압÷전류로 <b>합성 저항</b>을 구해 R1, R2와 비교해요.</li></ol></div>
+      <li>전체 전압÷전류로 <b>합성 저항</b>을 구해 R1, R2와 비교해요.</li></ol><p class="sel-note">💡 회로에 <b>전구</b>도 함께 연결하면 전구(10Ω)도 저항으로 같이 계산돼요.</p></div>
     <details><summary>🔒 정답·정리 (교사용)</summary><div class="ans">
       <p>I = 0.20 A (어디서 재도 같음), V1 = 2.0 V, V2 = 4.0 V, V1+V2 = 6.0 V = 전원 전압.</p>
       <p>합성 저항 R = 6.0 V ÷ 0.20 A = 30 Ω = R1 + R2. 전압은 저항에 비례해 나뉘어요.</p></div></details>
@@ -858,7 +867,7 @@ function missionHTML(){
       <li>R1=10Ω, R2=20Ω, 전원 6V. A1(전체), A2(R1쪽), A3(R2쪽), V1을 <b>📌 기록</b>해요.</li>
       <li>A1과 A2+A3을 비교해요. 각 저항 양 끝의 전압(전압계를 R1 양 끝으로 옮겨 보기)은 같은가요?</li>
       <li>R2를 50Ω으로 바꾸면 A1, A3은 어떻게 변하나요?</li>
-      <li>전체 전압÷전체 전류로 <b>합성 저항</b>을 구해 R1, R2와 비교해요.</li></ol></div>
+      <li>전체 전압÷전체 전류로 <b>합성 저항</b>을 구해 R1, R2와 비교해요.</li></ol><p class="sel-note">💡 회로에 <b>전구</b>도 함께 연결하면 전구(10Ω)도 저항으로 같이 계산돼요.</p></div>
     <details><summary>🔒 정답·정리 (교사용)</summary><div class="ans">
       <p>V1 = 6.0 V (각 저항에 같은 전압), A2 = 0.60 A, A3 = 0.30 A, A1 = 0.90 A = A2 + A3.</p>
       <p>합성 저항 R = 6.0÷0.90 ≈ 6.7 Ω (1/R = 1/R1 + 1/R2). 가장 작은 저항(10Ω)보다도 작아요. 전류는 저항이 작은 쪽으로 더 많이 흘러요.</p></div></details>
@@ -870,7 +879,7 @@ function missionHTML(){
 function anaHTML(){
   if(!S.comps.length)return '<p class="sel-note">부품이 없어요.</p>';
   return `<div class="tblwrap"><table><tr><th>부품</th><th>전압 V</th><th>전류 I(A)</th><th>전력 P(W)</th></tr>`+
-    S.comps.map(c=>{const r=c.res||{V:0,I:0,P:0};return `<tr><td>${c.name}</td><td>${r.V.toFixed(3)}</td><td>${r.I.toFixed(4)}</td><td>${r.P.toFixed(3)}</td></tr>`;}).join('')+`</table></div>
+    S.comps.map(c=>{const r=c.res||{V:0,I:0,P:0};return `<tr><td>${c.name}</td><td>${r.V.toFixed(2)}</td><td>${r.I.toFixed(2)}</td><td>${r.P.toFixed(2)}</td></tr>`;}).join('')+`</table></div>
       <p class="sel-note">계기(A, V)는 내부 저항 때문에 아주 작은 오차가 있어요. 전원은 공급 전력.</p>`;
 }
 function meterStatus(c){
@@ -893,7 +902,7 @@ function theoHTML(){
   const s=UI.sel;if(!s||s.k!=='c')return '';
   const c=comp(s.id);if(!c||isMeter(c))return '';
   const r=c.res||{V:0,I:0,P:0};
-  return `<p>걸리는 전압 <b>${r.V.toFixed(2)} V</b> · 흐르는 전류 <b>${r.I.toFixed(3)} A</b> · 전력 <b>${r.P.toFixed(2)} W</b></p>`;
+  return `<p>걸리는 전압 <b>${r.V.toFixed(2)} V</b> · 흐르는 전류 <b>${r.I.toFixed(2)} A</b> · 전력 <b>${r.P.toFixed(2)} W</b></p>`;
 }
 function inspHTML(){
   const s=UI.sel;
@@ -957,36 +966,85 @@ $('#zoomOv').addEventListener('click',e=>{if(e.target.id==='zoomOv'||e.target.cl
 const unitOf=l=>l[0]==='A'?'A':'V';
 function labelsAll(){const L=[];S.recs.forEach(r=>Object.keys(r.vals).forEach(k=>{if(!L.includes(k))L.push(k);}));
   const o={E:0,A:1,V:2};return L.sort((a,b)=>(o[a[0]]-o[b[0]])||(parseInt(a.slice(1))-parseInt(b.slice(1))));}
+function seriesChain(a){
+  /* 전류계 a를 지나는 전류가 그대로 통과하는(직렬) 저항·전구를 찾는다. 전압계(병렬)는 건너뛴다. */
+  const find=SOL.find;if(!find)return{parts:[],R:0};
+  const members={};
+  S.comps.forEach(c=>{
+    if(c.type==='voltmeter')return;
+    (isMeter(c)?[0,c.ta]:[0,1]).forEach(t=>{const k=c.id+':'+t;if(S.wires.some(w=>w.a===k||w.b===k)){const r=find(k);(members[r]=members[r]||[]).push(k);}});
+  });
+  const other=(c,t)=>isMeter(c)?(t===0?c.ta:0):1-t;
+  const seen=new Set([String(a.id)]),parts=[];
+  [0,a.ta].forEach(t0=>{
+    let c=a,t=t0;
+    for(let n=0;n<60;n++){
+      const k=c.id+':'+t,list=members[find(k)]||[];
+      if(list.length!==2)break;
+      const ok=list.find(x=>x!==k);if(!ok)break;
+      const sp=ok.split(':'),d=comp(sp[0]);
+      if(!d||d.type==='battery'||seen.has(String(d.id)))break;
+      seen.add(String(d.id));
+      if(d.type==='resistor')parts.push({n:d.name,R:d.val,bulb:false});
+      else if(d.type==='bulb')parts.push({n:d.name,R:BULB_R,bulb:true});
+      c=d;t=other(d,+sp[1]);
+    }
+  });
+  parts.sort((x,y)=>x.n.localeCompare(y.n,undefined,{numeric:true}));
+  return{parts,R:parts.reduce((q,p)=>q+p.R,0)};
+}
 function recordNow(){
   const ms=S.comps.filter(isMeter);
   if(!ms.length){toast('전류계나 전압계를 먼저 연결해 주세요');return;}
   const bad=ms.find(c=>c.over||c.rev||!c.nm);
   if(bad){toast(`${bad.name}: ${!bad.nm?'− 단자 연결':bad.rev?'+ − 연결':'측정 범위'}을(를) 먼저 바로잡아요`);return;}
-  const vals={};
+  const vals={},ser={};
   S.comps.filter(c=>c.type==='battery').forEach(c=>vals[c.name]=c.val);
-  ms.forEach(c=>vals[c.name]=c.type==='ammeter'?+c.rd.toFixed(3):+c.rd.toFixed(2));
-  S.recs.push({id:S.nid++,set:S.cur,vals});
-  save();renderPanel();toast('📌 기록했어요! ('+S.recs.length+'번째)');
+  ms.forEach(c=>{vals[c.name]=+c.rd.toFixed(2);});
+  if(ms.some(c=>c.type==='ammeter'&&vals[c.name]===0)){toast('전류가 0(또는 너무 작아요)! 스위치를 닫았는지, 전원 전압이 0V가 아닌지 확인해요');return;}
+  ms.filter(c=>c.type==='ammeter').forEach(c=>{const ch=seriesChain(c);if(ch.parts.length)ser[c.name]=ch;});
+  S.recs.push({id:S.nid++,set:S.cur,vals,ser});
+  const n=S.recs.filter(r=>r.set===S.cur).length,E=S.comps.find(c=>c.type==='battery');
+  save();renderPanel();
+  toast(n>=6?`📌 ${n}번째 기록! [📈 그래프]에서 점을 확인해 보세요`:(E&&E.val<12?`📌 ${n}번째 기록! 이제 전원을 ＋1V 올려(${E.val+1}V) 다시 기록해요`:`📌 ${n}번째 기록했어요`));
 }
+const fmt2=v=>String(+Number(v).toFixed(2));
 function recHTML(){
   const L=labelsAll();
   const vs=L.filter(l=>l[0]==='V'),as=L.filter(l=>l[0]==='A');
   const ratio=vs.length&&as.length;
-  let h=`<div class="row"><button class="btn pri" data-act="rec">📌 지금 값 기록</button><button class="btn" data-act="newset">➕ 새 세트 (현재 ${S.cur}세트)</button></div>
+  const E=S.comps.find(c=>c.type==='battery');
+  const inSet=S.recs.filter(r=>r.set===S.cur),nSet=inSet.length;
+  let prog='';
+  if(E){
+    const last=nSet?inSet[nSet-1].vals[E.name]:null;
+    const msg=!nSet?`👉 세트 ${S.cur}: 전원장치 ${E.name}의 전압을 <b>1V</b>로 맞추고 첫 값을 기록해 보세요. (지금 ${E.val}V)`
+      :nSet>=6?`✅ 세트 ${S.cur}: ${nSet}개 기록 완료! <b>[📈 그래프]</b> 탭에서 점을 확인해 보세요.`
+      :`👉 세트 ${S.cur}: ${nSet}개 기록했어요. 이제 전원장치 ${E.name}의 전압을 <b>${Math.min(12,(last==null?E.val:last)+1)}V</b>로 올리고 다시 기록! (지금 ${E.val}V)`;
+    prog=`<div class="msg info" style="margin-bottom:8px">${msg}<div class="row" style="margin:6px 0 0"><button class="btn num" data-act="vdown" data-id="${E.id}">－1V</button><b class="vval">${E.val} V</b><button class="btn num pri" data-act="vup" data-id="${E.id}">＋1V</button></div></div>`;
+  }
+  const guide=`<div class="card" style="background:#fff8e6;border-color:#f0c36d"><h3>📌 이렇게 기록해요</h3><ol>
+    <li>회로를 만들고 <b>스위치를 닫아요.</b></li>
+    <li>전원장치를 <b>1V</b>로 맞춰요. (전원장치 옆 <b>＋1V / －1V</b> 버튼)</li>
+    <li>계기 바늘을 읽고 위쪽 <b>📌 지금 값 기록</b>을 눌러요.</li>
+    <li>전원을 <b>＋1V</b> 올리고 다시 기록해요. <b>1V ~ 6V, 6번 이상</b> 반복!</li>
+    <li>저항을 바꿔서 다시 하려면 먼저 <b>➕ 새 세트</b>를 눌러요.</li>
+    <li>다 모았으면 <b>[📈 그래프]</b> 탭에서 점을 확인해요.</li></ol>
+    <p class="sel-note">✏ 값은 <b>소수 둘째 자리까지</b> 기록돼요. 전류가 mA로 보이면 A로 바꿔서 써요. (예: 183 mA → 0.18 A)</p></div>`;
+  let h=prog+`<div class="row"><button class="btn pri" data-act="rec">📌 지금 값 기록</button><button class="btn" data-act="newset">➕ 새 세트 (현재 ${S.cur}세트)</button></div>
   <div class="row"><button class="btn sm" data-act="csv">⬇ CSV 저장</button><button class="btn sm danger" data-act="clrrec">🗑 기록 지우기</button></div>`;
-  if(!S.recs.length)return h+`<div class="card"><p>회로를 만들고 계기를 읽은 뒤 <b>📌 지금 값 기록</b>을 눌러요. 전원 전압을 <b>1V씩 올리며</b> 여러 번 기록하면 그래프에 점이 찍혀요.</p>
-    <p class="sel-note">계기 바늘이 반대로 가거나 범위를 넘은 상태, − 단자가 없는 상태에서는 기록되지 않아요.</p></div>`;
+  if(!S.recs.length)return h+guide+`<p class="sel-note">계기 바늘이 반대로 가거나 범위를 넘은 상태, − 단자가 없는 상태에서는 기록되지 않아요.</p>`;
   h+=`<div class="tblwrap"><table><tr><th>#</th><th>세트</th>${L.map(l=>`<th>${l}<br>(${unitOf(l)})</th>`).join('')}${ratio?`<th>${vs[0]}÷${as[0]}<br>(Ω)</th>`:''}<th></th></tr>`;
   S.recs.forEach((r,i)=>{
     const rt=ratio&&r.vals[vs[0]]!==undefined&&r.vals[as[0]]>0?(r.vals[vs[0]]/r.vals[as[0]]).toFixed(1):'-';
-    h+=`<tr><td>${i+1}</td><td><span class="dot" style="background:${SCOL[(r.set-1)%SCOL.length]}"></span>${r.set}</td>${L.map(l=>`<td>${r.vals[l]===undefined?'':r.vals[l]}</td>`).join('')}${ratio?`<td>${rt}</td>`:''}<td><button class="btn sm" data-act="delrec" data-id="${r.id}">✕</button></td></tr>`;
+    h+=`<tr><td>${i+1}</td><td><span class="dot" style="background:${SCOL[(r.set-1)%SCOL.length]}"></span>${r.set}</td>${L.map(l=>`<td>${r.vals[l]===undefined?'':(l[0]==='E'?r.vals[l]:r.vals[l].toFixed(2))}</td>`).join('')}${ratio?`<td>${rt}</td>`:''}<td><button class="btn sm" data-act="delrec" data-id="${r.id}">✕</button></td></tr>`;
   });
-  return h+`</table></div><p class="sel-note">같은 회로에서 저항을 바꿔 다시 측정하려면 <b>➕ 새 세트</b>를 눌러요.</p>`;
+  return h+`</table></div><p class="sel-note">같은 회로에서 저항을 바꿔 다시 측정하려면 <b>➕ 새 세트</b>를 눌러요.</p>`+guide;
 }
 function nice(max){
   if(!(max>0))return{max:1,step:0.2};
-  const k=Math.pow(10,Math.floor(Math.log10(max/5)));
-  for(const m of [1,2,2.5,5,10]){const st=m*k;if(max/st<=6)return{max:Math.ceil(max/st-1e-9)*st,step:st};}
+  const k=Math.max(0.01,Math.pow(10,Math.floor(Math.log10(max/5))));
+  for(const m of [1,2,5,10]){const st=m*k;if(max/st<=6)return{max:Math.ceil(max/st-1e-9)*st,step:st};}
   return{max:max,step:max/5};
 }
 function graphHTML(){
@@ -1003,7 +1061,7 @@ function graphHTML(){
   const xs=nice(Math.max(...pts.map(p=>p.x))),ys=nice(Math.max(...pts.map(p=>p.y)));
   const w=380,hh=320,ml=54,mr=26,mt=16,mb=42,pw=w-ml-mr,ph=hh-mt-mb;
   const X=v=>ml+v/xs.max*pw,Y=v=>mt+ph-v/ys.max*ph;
-  const lab=v=>String(+v.toFixed(4));
+  const lab=fmt2;
   let svg=`<svg viewBox="0 0 ${w} ${hh}" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px">`;
   for(let v=0;v<=xs.max+1e-9;v+=xs.step){svg+=`<line x1="${X(v)}" y1="${mt}" x2="${X(v)}" y2="${mt+ph}" stroke="#e5ebf3"/><text x="${X(v)}" y="${mt+ph+15}" font-size="11" text-anchor="middle" fill="#445">${lab(v)}</text>`;}
   for(let v=0;v<=ys.max+1e-9;v+=ys.step){svg+=`<line x1="${ml}" y1="${Y(v)}" x2="${ml+pw}" y2="${Y(v)}" stroke="#e5ebf3"/><text x="${ml-6}" y="${Y(v)+4}" font-size="11" text-anchor="end" fill="#445">${lab(v)}</text>`;}
@@ -1014,31 +1072,47 @@ function graphHTML(){
   let info='',dots='',coords='';
   sets.forEach(sn=>{
     const col=SCOL[(sn-1)%SCOL.length],P=pts.filter(p=>p.s===sn);
-    let txt='';
+    let txt='',fitR=null;
     if(P.length>=2){
       const sxx=P.reduce((a,p)=>a+p.x*p.x,0),sxy=P.reduce((a,p)=>a+p.x*p.y,0);
       if(sxx>0){
         const k=sxy/sxx;
         if(UI.trend&&k>0){const xe=Math.min(xs.max,ys.max/k);svg+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(xe)}" y2="${Y(k*xe)}" stroke="${col}" stroke-width="2" opacity=".5"/>`;}
         const xv=gx[0]==='V'||gx[0]==='E',yc=gy[0]==='A';
-        if(xv&&yc&&k>0)txt=`기울기 ${k.toPrecision(3)} A/V → R ≈ ${(1/k).toFixed(1)} Ω`;
-        else if(gx[0]==='A'&&(gy[0]==='V'||gy[0]==='E')&&k>0)txt=`기울기 ≈ ${k.toFixed(1)} V/A → R ≈ ${k.toFixed(1)} Ω`;
-        else txt=`기울기 ${k.toPrecision(3)}`;
+        if(xv&&yc&&k>0){fitR=1/k;txt=`전압÷전류 ≈ <b>${+fitR.toFixed(1)} Ω</b>`;}
+        else if(gx[0]==='A'&&(gy[0]==='V'||gy[0]==='E')&&k>0){fitR=k;txt=`전압÷전류 ≈ <b>${+k.toFixed(1)} Ω</b>`;}
       }
     }
     P.forEach(p=>{
-      dots+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="6" fill="${col}" stroke="#fff" stroke-width="2"/>
-        <text x="${X(p.x)+8}" y="${Y(p.y)-8}" font-size="10.5" font-weight="800" fill="${col}" stroke="#fff" stroke-width="3" paint-order="stroke">(${lab(p.x)}, ${lab(p.y)})</text>`;
+      const tx=`(${lab(p.x)}, ${lab(p.y)})`,est=tx.length*5.3,px=X(p.x),py=Y(p.y);
+      const right=px+9+est<=w-2,lx=right?px+9:px-9;
+      dots+=`<circle cx="${px}" cy="${py}" r="5.5" fill="${col}" stroke="#fff" stroke-width="2"/>
+        <text x="${lx}" y="${py+15}" text-anchor="${right?'start':'end'}" font-size="9.5" font-weight="800" fill="${col}" stroke="#fff" stroke-width="3" paint-order="stroke">${tx}</text>`;
     });
     info+=`<div><span class="dot" style="background:${col}"></span><b>세트 ${sn}</b> (${P.length}개) ${txt?'· '+txt:''}</div>`;
+    /* 직렬로 연결된 저항의 합과 비교 (전원장치 전압 – 전류계 그래프) */
+    if(gx[0]==='E'&&gy[0]==='A'){
+      const recs=S.recs.filter(r=>r.set===sn&&r.ser&&r.ser[gy]);
+      if(recs.length){
+        const ch=recs[recs.length-1].ser[gy],hasB=ch.parts.some(q=>q.bulb);
+        const diff=(fitR&&ch.R>0)?` · 그래프로 구한 값과 차이 약 <b>${(Math.abs(fitR-ch.R)/ch.R*100).toFixed(1)}%</b>`:'';
+        info+=`<div class="sel-note" style="margin:2px 0 4px 14px">🧮 ${gy}에 흐르는 전류가 지나는 저항: ${ch.parts.map(q=>`${q.n}${q.bulb?'(전구)':''} ${q.R}Ω`).join(' + ')} = <b>${ch.R} Ω</b>${hasB?' ← <b>전구도 저항 10Ω</b>으로 더해져요!':''}${diff}</div>`;
+      }
+    }
     coords+=`<tr><td><span class="dot" style="background:${col}"></span>${sn}</td><td class="tbl-end">${P.map(p=>`(${lab(p.x)}, ${lab(p.y)})`).join(' &nbsp;')}</td></tr>`;
   });
   svg+=dots+'</svg>';
   return h+svg+`<div class="legend" style="flex-direction:column;gap:3px">${info}</div>
     <div class="tblwrap"><table><tr><th>세트</th><th>점의 좌표 (${gx}, ${gy})</th></tr>${coords}</table></div>
-    <p class="sel-note">💡 점들이 <b>원점을 지나는 직선</b> 위에 놓이면 전류가 전압에 비례(R 일정)해요. 직선의 기울기는 1/R!</p>`;
+    <p class="sel-note">💡 점들이 <b>원점을 지나는 직선</b> 위에 놓이면 전류가 전압에 비례(R 일정)해요. 그 직선이 가파를수록 저항이 작아요.</p>
+    <div class="card" style="margin-top:8px"><h3>🔍 값이 딱 떨어지지 않아도 괜찮아요</h3><ul>
+      <li><b>눈금 읽기 오차</b>: 바늘이 눈금 사이에 있으면 눈대중으로 읽어서 사람마다 조금씩 달라요.</li>
+      <li><b>반올림 오차</b>: 소수 둘째 자리까지만 기록해서 작은 차이가 생겨요. (예: 0.1667 A → 0.17 A)</li>
+      <li><b>계기 오차</b>: 전류계·전압계도 회로에 아주 조금 영향을 줘요.</li>
+      <li>그래서 점이 직선에서 <b>조금 벗어나는 것은 정상</b>이에요. 직선은 점들을 <b>가장 잘 지나도록</b> 그어요.</li>
+      <li>저항을 더한 값(예: 60Ω)과 그래프로 구한 값(예: 59.8Ω)이 <b>비슷하면 실험 성공!</b> 🎉</li></ul>
+      <p class="sel-note">※ 가상 실험실은 실제 실험보다 오차가 훨씬 작아요. 실제 실험에서는 더 크게 벗어날 수 있어요.</p></div>`;
 }
-
 /* ---------- 패널 렌더 & 이벤트 ---------- */
 function renderPanel(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('act',b.dataset.tab===UI.tab));
@@ -1063,6 +1137,7 @@ $('#tabBody').addEventListener('click',e=>{
   else if(a==='rv'&&c){mut(()=>{c.val=+b.dataset.v;});}
   else if(a==='tog'&&c){mut(()=>{c.on=!c.on;});}
   else if(a==='zoomOpen'){UI.zoom=true;renderZoom();}
+  else if(a==='vup'||a==='vdown'){const bc=comp(b.dataset.id);if(bc){pushUndo();setVolt(bc.id,bc.val+(a==='vup'?1:-1),false);renderPanel();}}
   else if(a==='rec')recordNow();
   else if(a==='newset'){S.cur++;save();renderPanel();toast(`새 세트(${S.cur}) 시작! 회로 조건을 바꿔 다시 측정해요`);}
   else if(a==='delrec'){S.recs=S.recs.filter(r=>r.id!==+b.dataset.id);save();renderPanel();}
