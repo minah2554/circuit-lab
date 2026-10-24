@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="app-version" content="1.1.0">
+<meta name="app-version" content="1.2.0">
 <title>전기 회로 가상 실험실 · MINARI STUDIO</title>
 <style>
 :root{
@@ -71,7 +71,7 @@ th{background:#eef3fa;color:var(--navy);font-weight:800}
 input[type=range]{width:100%;height:34px;accent-color:var(--accent)}
 select{border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;background:#fff;font-weight:700;min-height:36px}
 .big{font-size:30px;font-weight:800;color:var(--navy)}
-.digital{background:#1a2b1f;color:#7dff9c;font-family:ui-monospace,Consolas,monospace;font-weight:700;font-size:26px;text-align:center;border-radius:8px;padding:5px;letter-spacing:1px;margin-top:6px}
+.digital{background:#1a2b1f;color:#7dff9c;font-family:ui-monospace,Consolas,monospace;font-weight:700;font-size:24px;line-height:1.3;min-height:46px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:8px;padding:6px 8px;letter-spacing:1px;margin-top:6px;overflow:visible}
 .sel-note{font-size:12.5px;color:var(--sub);line-height:1.45}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;max-width:90vw;text-align:center}
 #toast.show{opacity:.96}
@@ -132,7 +132,7 @@ select{border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;backgrou
    - 계기는 실제처럼 + 단자 1개, − 단자 3개. 연결한 − 단자가 측정 범위를 결정
    - 전구는 저항 10Ω(일정)로 가정 (정격 6V, 0.6A)
    ============================================================ */
-const VERSION='1.1.0';
+const VERSION='1.2.0';
 const GRID=20;
 const BULB_R=10, BULB_V=6, BULB_P=3.6;
 const TYPES={
@@ -333,11 +333,12 @@ function gaugeInner(c,det){
   for(let i=0;i<=nMin;i++){
     const a=(-50+100*i/nMin)*Math.PI/180,major=i%r.div===0,len=major?7:3.5;
     s+=`<line x1="${(cx+R0*Math.sin(a)).toFixed(2)}" y1="${(cy-R0*Math.cos(a)).toFixed(2)}" x2="${(cx+(R0-len)*Math.sin(a)).toFixed(2)}" y2="${(cy-(R0-len)*Math.cos(a)).toFixed(2)}" stroke="#222" stroke-width="${major?1.3:.7}"/>`;
-    if(major){const rr=R0-13;const v=+(i/r.div*r.maj*r.f).toFixed(3);
-      s+=`<text x="${(cx+rr*Math.sin(a)).toFixed(2)}" y="${(cy-rr*Math.cos(a)+2.5).toFixed(2)}" font-size="7.5" font-weight="700" text-anchor="middle" fill="#222">${v}</text>`;}
+    if(major){const rr=R0-11.5;const v=+(i/r.div*r.maj*r.f).toFixed(3);
+      s+=`<text x="${(cx+rr*Math.sin(a)).toFixed(2)}" y="${(cy-rr*Math.cos(a)+1.9).toFixed(2)}" font-size="5" font-weight="700" text-anchor="middle" fill="#222">${v}</text>`;}
   }
   const col=m==='A'?'#c2410c':'#1d4ed8';
-  s+=`<circle cx="50" cy="70.5" r="7.6" fill="#fff" stroke="${col}" stroke-width="1.2"/><text x="50" y="74" font-size="10" font-weight="900" text-anchor="middle" fill="${col}">${m}</text>`;
+  s+=`<circle cx="50" cy="70.5" r="7.6" fill="#fff" stroke="${col}" stroke-width="1.2"/><text x="50" y="73.6" font-size="9.5" font-weight="900" text-anchor="middle" fill="${col}">${m}</text><line x1="46" y1="75.6" x2="54" y2="75.6" stroke="${col}" stroke-width="1"/>`;
+  s+=`<text x="14" y="75" font-size="6" font-weight="800" text-anchor="middle" fill="#666">${c.nm?r.k:'−단자?'}</text>`;
   s+=`<text x="86" y="75" font-size="8" font-weight="800" text-anchor="middle" fill="#444">${m==='A'?r.unit:'V'}</text>`;
   s+=`<g data-needle="1" data-for="${c.id}" transform="rotate(${ND[c.id]===undefined?-50:ND[c.id]} 50 62)"><line x1="${cx}" y1="${cy}" x2="${cx}" y2="22" stroke="#d6336c" stroke-width="1.6" stroke-linecap="round"/></g><circle cx="${cx}" cy="${cy}" r="3.2" fill="#333"/>`;
   return s;
@@ -365,11 +366,10 @@ function compSVG(c){
       <rect x="-76" y="42" width="152" height="50" rx="8" fill="#2b2f36"/>`;
     [1,2,3,0].forEach(t=>{
       const x=MTX[t],lbl=t===0?'+':nn[t-1],active=(t===c.ta&&c.nm);
-      strip+=`<text x="${x}" y="57" text-anchor="middle" font-size="11" font-weight="800" fill="${t===0?'#ff8787':(active?'#8ce99a':'#dee2e6')}">${lbl}</text>`;
+      strip+=`<text x="${x}" y="57" text-anchor="middle" font-size="${t===0?13:9.5}" font-weight="800" fill="${t===0?'#ff8787':(active?'#8ce99a':'#dee2e6')}">${lbl}</text>`;
     });
     strip+=`<text x="-70" y="-62" font-size="15" font-weight="900" fill="${col}">${c.name}</text>
-      <text x="70" y="-62" font-size="12" font-weight="800" fill="#555" text-anchor="end">${c.nm?meterRange(c).k:'−단자?'}</text>
-      <text x="0" y="-62" font-size="14" font-weight="800" text-anchor="middle" fill="${c.over?'#e03131':'#1a6b32'}">${fmtMeter(c)}</text>`;
+      <text x="72" y="-62" font-size="15" font-weight="900" text-anchor="end" fill="${c.over?'#e03131':'#1a6b32'}">${fmtMeter(c)}</text>`;
     return `<g data-c="${c.id}" transform="translate(${c.x},${c.y})" style="cursor:grab">${hl}${strip}</g>`;
   }
   const T=TYPES[c.type].T;
@@ -573,7 +573,7 @@ board.addEventListener('pointerdown',e=>{
   }
   else if(wEl){UI.sel={k:'w',id:+wEl.dataset.w};UI.pend=null;UI.drag=null;if(UI.tab==='guide')UI.tab='sel';}
   else{UI.sel=null;UI.pend=null;const m=board.getScreenCTM();UI.drag={kind:'pan',cx:e.clientX,cy:e.clientY,vx:VB.x,vy:VB.y,k:m?1/m.a:1,moved:false};}
-  renderBoard();renderToolbar();renderPanel();renderZoom();
+  renderBoard();renderToolbar();renderMsgs();renderPanel();renderZoom();
 });
 board.addEventListener('pointermove',e=>{
   const d=UI.drag;if(!d)return;
@@ -621,8 +621,8 @@ board.addEventListener('wheel',e=>{e.preventDefault();zoomBy(e.deltaY<0?0.88:1.1
    툴바 · 메시지 · 팔레트
    ============================================================ */
 function iconSVG(t){
-  const meter=(L,col)=>`<circle cx="42" cy="15" r="12" fill="#fdf8e8" stroke="#2b2b2b" stroke-width="2"/><text x="42" y="20.5" font-size="15" font-weight="900" fill="${col}" text-anchor="middle">${L}</text>
-    <rect x="12" y="29" width="60" height="9" rx="3" fill="#2b2f36"/><circle cx="22" cy="33.5" r="2.6" fill="#ced4da"/><circle cx="34" cy="33.5" r="2.6" fill="#ced4da"/><circle cx="46" cy="33.5" r="2.6" fill="#ced4da"/><circle cx="62" cy="33.5" r="2.8" fill="#ff6b6b"/>`;
+  const meter=(L,col)=>`<line x1="3" y1="20" x2="26" y2="20" stroke="#333" stroke-width="2.5"/><line x1="58" y1="20" x2="81" y2="20" stroke="#333" stroke-width="2.5"/>
+    <circle cx="42" cy="20" r="16" fill="#fff" stroke="#222" stroke-width="2.5"/><text x="42" y="26.5" font-size="19" font-weight="800" fill="#222" text-anchor="middle">${L}</text><line x1="34" y1="30" x2="50" y2="30" stroke="#222" stroke-width="2"/>`;
   const s={
     battery:`<rect x="22" y="6" width="40" height="28" rx="5" fill="#2b3a55"/><text x="30" y="26" font-size="16" font-weight="900" fill="#ced4da" text-anchor="middle">−</text><text x="54" y="27" font-size="17" font-weight="900" fill="#ff8787" text-anchor="middle">+</text><text x="42" y="17" font-size="9" fill="#7ee0a0" text-anchor="middle" font-weight="800">DC</text><line x1="4" y1="20" x2="22" y2="20" stroke="#222" stroke-width="3.5"/><line x1="62" y1="20" x2="80" y2="20" stroke="#c92a2a" stroke-width="3.5"/>`,
     switch:`<line x1="4" y1="26" x2="22" y2="26" stroke="#555" stroke-width="3.5"/><line x1="62" y1="26" x2="80" y2="26" stroke="#555" stroke-width="3.5"/><circle cx="22" cy="26" r="4" fill="#444"/><circle cx="62" cy="26" r="4" fill="#444"/><line x1="22" y1="26" x2="56" y2="9" stroke="#c2410c" stroke-width="4" stroke-linecap="round"/>`,
@@ -669,7 +669,14 @@ $('#toolbar').addEventListener('click',e=>{
 });
 $('#toolbar').addEventListener('change',e=>{if(e.target.id==='exsel'&&e.target.value){const v=e.target.value;e.target.value='';loadEx(v);}});
 function rotSel(){if(UI.sel&&UI.sel.k==='c'){const c=comp(UI.sel.id);if(isMeter(c)){toast('계기는 회전하지 않아요');return;}mut(()=>{c.rot=(c.rot+90)%360;});}}
-function renderMsgs(){$('#msgs').innerHTML=MSGS.slice(0,3).map(m=>`<div class="msg ${m.lvl}">${esc(m.t)}</div>`).join('');}
+function hookHint(){
+  const s=UI.sel;if(!s||s.k!=='c')return null;
+  const c=comp(s.id);if(!c||!isMeter(c))return null;
+  return c.type==='ammeter'
+    ?{lvl:'info',t:'🔌 전류계 연결: 빨간 + 단자 ← 전원장치 + 쪽 전선 / 검정 − 단자(5A부터) → 부품 쪽 전선 · 회로 중간에 직렬로 끼워요.'}
+    :{lvl:'info',t:'🔌 전압계 연결: 빨간 + 단자 ← 전원 + 쪽에 가까운 부품 끝 / 검정 − 단자(30V부터) → 부품의 반대쪽 끝 · 재려는 부품과 병렬로 연결해요.'};
+}
+function renderMsgs(){const h=hookHint();const L=(h?[h]:[]).concat(MSGS).slice(0,3);$('#msgs').innerHTML=L.map(m=>`<div class="msg ${m.lvl}">${esc(m.t)}</div>`).join('');}
 
 /* ============================================================
    예제 회로
@@ -799,7 +806,7 @@ function liveHTML(){
   const s=UI.sel;if(!s||s.k!=='c')return '';
   const c=comp(s.id);if(!c||!isMeter(c))return '';
   const r=meterRange(c),minor=+(r.maj/r.div*r.f).toFixed(3);
-  return `<svg viewBox="0 0 100 80" style="width:100%;display:block;margin:2px auto">${gaugeInner(c,true)}</svg>
+  return `<svg viewBox="0 0 100 80" style="width:min(100%,300px);display:block;margin:2px auto">${gaugeInner(c,true)}</svg>
     <div class="digital">${esc(fmtMeter(c))}</div>
     <p class="sel-note" style="text-align:center">연결한 − 단자 <b>${c.nm?r.k:'없음'}</b> · 작은 눈금 한 칸 = <b>${minor} ${c.type==='ammeter'?r.unit:'V'}</b></p>${meterStatus(c)}`;
 }
@@ -832,7 +839,10 @@ function inspHTML(){
     h+=`<div class="card"><h3>스위치</h3><button class="btn ${c.on?'on':''}" data-act="tog">${c.on?'닫힘 (전류가 흘러요) → 열기':'열림 (전류가 끊겨요) → 닫기'}</button></div>`;
   }else{
     const nn=negNames(c);
-    h+=`<div class="card"><h3>${c.type==='ammeter'?'전류계':'전압계'} 연결 안내</h3>
+    h+=`<div class="card" style="background:#fff8e6;border-color:#f0c36d"><h3>🔌 이렇게 연결해요</h3>${c.type==='ammeter'
+      ?'<ol><li>빨간 <b>+ 단자</b> ← 전원장치 <b>+</b> 쪽에서 온 전선</li><li>검정 <b>− 단자</b>(처음엔 <b>5A</b>) → 전구·저항 쪽으로 가는 전선</li><li>회로를 한 곳 끊고 그 사이에 <b>직렬</b>로 끼워요</li></ol>'
+      :'<ol><li>빨간 <b>+ 단자</b> ← 재려는 부품의 <b>전원 + 쪽</b> 끝</li><li>검정 <b>− 단자</b>(처음엔 <b>30V</b>) → 같은 부품의 <b>반대쪽</b> 끝</li><li>부품과 <b>병렬</b>(나란히)로 연결해요</li></ol>'}</div>
+    <div class="card"><h3>${c.type==='ammeter'?'전류계':'전압계'} 연결 안내</h3>
       <p><b>+ 단자(빨강) 1개</b>: ${c.type==='ammeter'?'전원 + 쪽에서 오는 전선':'전원 + 쪽(전위가 높은 쪽)'}</p>
       <p><b>− 단자 3개</b>: ${nn.join(' / ')} 중 <b>하나만</b> 연결 (큰 단자부터!)</p>
       <p>${c.type==='ammeter'?'전류계는 회로에 <b>직렬</b>로 연결해요.':'전압계는 재려는 부품과 <b>병렬</b>로 연결해요.'}</p>
