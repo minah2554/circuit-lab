@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="app-version" content="1.6.4">
+<meta name="app-version" content="1.6.5">
 <title>전기회로 가상실험실 · MINARI STUDIO</title>
 <meta name="theme-color" content="#1f3a5f">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%232c5282%22/%3E%3Cstop offset=%221%22 stop-color=%22%231f3a5f%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22url%28%23g%29%22/%3E%3Cpath d=%22M36 318H138M374 318H476%22 stroke=%22%23f08c00%22 stroke-width=%2224%22 stroke-linecap=%22round%22 fill=%22none%22/%3E%3Ccircle cx=%22256%22 cy=%22318%22 r=%22120%22 fill=%22%23fdf8e8%22 stroke=%22%23fff%22 stroke-width=%2210%22/%3E%3Cpath d=%22M198 388L256 238L314 388M219 346H293%22 stroke=%22%231f3a5f%22 stroke-width=%2226%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 fill=%22none%22/%3E%3Cpath d=%22M204 416H308%22 stroke=%22%231f3a5f%22 stroke-width=%2216%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M296 28L206 130H256L226 188L324 80H270Z%22 fill=%22%23ffd43b%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
@@ -218,7 +218,7 @@ select{border:1.5px solid var(--line);border-radius:9px;padding:6px 8px;backgrou
    - 계기는 실제처럼 + 단자 1개, − 단자 3개. 연결한 − 단자가 측정 범위를 결정
    - 전구는 저항 10Ω(일정)로 가정 (정격 6V, 0.6A)
    ============================================================ */
-const VERSION='1.6.4';
+const VERSION='1.6.5';
 const GRID=20;
 const BULB_R=10, BULB_V=6, BULB_P=3.6;
 const TYPES={
@@ -388,14 +388,14 @@ function analyze(){
       if(plusW&&!c.nm)add('warn',`🔌 ${c.name}: − 단자가 연결되지 않았어요. (− 단자 3개 중 하나를 연결해요)`);
       else if(c.multi)add('warn',`🔌 ${c.name}: − 단자는 하나만 연결해요. (지금은 가장 큰 범위 ${r.k} 단자로 측정)`);
       if(c.rev)add('warn',c.type==='ammeter'
-        ?`↩ ${c.name}: 계기 바늘이 거꾸로 가요. 전구·스위치는 방향이 없으니 괜찮아요! 전류계의 + 단자(빨강)가 전원장치 + 쪽 전선과 이어지도록 ${c.name}의 두 전선을 서로 바꿔요.`
-        :`↩ ${c.name}: 계기 바늘이 거꾸로 가요. 전구·스위치는 방향이 없으니 괜찮아요! 전압계의 + 단자(빨강)를 전원 + 쪽에 가까운 부품 끝에 연결하도록 ${c.name}의 두 전선을 서로 바꿔요.`);
+        ?`↩ ${c.name}: 전류계 바늘이 거꾸로 가요. 전구와 스위치는 방향이 없으니 괜찮아요! 전원장치 + 쪽 전선이 전류계의 빨간 + 단자에 오도록, ${c.name}에 연결한 전선 두 개를 서로 바꿔 끼워요.`
+        :`↩ ${c.name}: 전압계 바늘이 거꾸로 가요. 전구와 스위치는 방향이 없으니 괜찮아요! 전압계의 빨간 + 단자를 전원 + 쪽에 가까운 쪽에 연결하도록, ${c.name}에 연결한 전선 두 개를 서로 바꿔 끼워요.`);
       else if(c.over){
         const next=c.rng<2?nn[c.rng+1]:null;
         add('warn',`📈 ${c.name}: 측정 범위(${r.k})를 넘었어요!`+(next?` − 단자를 더 큰 ${next} 단자로 옮겨 연결해요.`:''));
       }
     }
-    if(c.type==='bulb'&&c.res.V>BULB_V*1.2)add('warn',`💡 ${c.name}: 정격 전압(${BULB_V}V)보다 큰 ${c.res.V.toFixed(1)}V가 걸려요. 실제라면 필라멘트가 끊어질 수 있어요.`);
+    if(c.type==='bulb'&&Math.abs(c.res.V)>BULB_V*1.2)add('warn',`💡 ${c.name}: 정격 전압(${BULB_V}V)보다 큰 ${Math.abs(c.res.V).toFixed(1)}V가 걸려요. 실제라면 필라멘트가 끊어질 수 있어요.`);
   });
   /* 전구가 안 켜지는 이유 안내 (전구·스위치에는 + − 방향이 없어요) */
   const dark=S.comps.filter(c=>c.type==='bulb'&&Math.abs(c.res.I)<1e-3);
@@ -416,7 +416,7 @@ function analyze(){
   if(srcs.length&&srcs.every(s=>s.val>0.01&&Math.abs(s.res.I)<1e-4)&&!MSGS.some(m=>m.t.startsWith('🧪'))&&!SOL.short.length&&!darkMsg){
     add('info','🔓 회로가 열려 있어서 전류가 흐르지 않아요. 스위치를 닫거나 끊어진 곳을 이어 보세요.');
   }
-  if(!MSGS.length&&srcs.length&&srcs.some(s=>Math.abs(s.res.I)>1e-4))add('ok',S.comps.some(c=>c.type==='bulb')?'✅ 전류가 흐르는 중이에요. 💡 전구는 전류가 클수록 밝아요. 전구 아래 ★과 전류 값으로 밝기를 비교해요.':'✅ 전류가 흐르는 중이에요. 계기 바늘을 읽고 [🗂 기록]에서 📌 기록해 보세요.');
+  if(!MSGS.length&&srcs.length&&srcs.some(s=>Math.abs(s.res.I)>1e-4))add('ok',S.comps.some(c=>c.type==='bulb')?'✅ 전류가 흐르는 중이에요. 💡 전구는 전류가 클수록 밝아요. 전구 아래 ★(밝기)과 전류 값으로 비교해요.':'✅ 전류가 흐르는 중이에요. 계기 바늘을 읽고 [🗂 기록]에서 📌 기록해 보세요.');
 }
 
 /* ============================================================
@@ -494,10 +494,10 @@ function compSVG(c){
         ${br>0.02?`<circle r="${(48+22*b1).toFixed(0)}" fill="url(#glow)" opacity="${Math.min(1,br*1.1).toFixed(2)}"/>`:''}
         <circle r="30" fill="${glass}" stroke="#222" stroke-width="3.5"/>
         <path d="M-30,0 H-10 A10,17 0 0 1 10,0 H30" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-      const st=Math.round(Math.min(1,br)*5);
+      const st=BLV(Math.max(0,r.P)/BULB_P*100);
       over=labelAt(c,`${c.name} 전구 ${BULB_R}Ω`,16,'#7a4a00',54,44)+
-        (c.rot%180===0?`<text x="0" y="74" text-anchor="middle" font-size="16" font-weight="800" fill="#b45309">${'★'.repeat(st)}${'☆'.repeat(5-st)} <tspan fill="#444">${Math.abs(r.I).toFixed(2)} A</tspan></text>`
-                       :`<text x="44" y="26" text-anchor="start" font-size="16" font-weight="800" fill="#b45309">${'★'.repeat(st)}${'☆'.repeat(5-st)}</text><text x="44" y="46" text-anchor="start" font-size="16" font-weight="800" fill="#444">${Math.abs(r.I).toFixed(2)} A</text>`);
+        (c.rot%180===0?`<text x="0" y="74" text-anchor="middle" font-size="16" font-weight="800" fill="#b45309">${STAR(st)} <tspan fill="#444">${Math.abs(r.I).toFixed(2)} A</tspan></text>`
+                       :`<text x="44" y="26" text-anchor="start" font-size="16" font-weight="800" fill="#b45309">${STAR(st)}</text><text x="44" y="46" text-anchor="start" font-size="16" font-weight="800" fill="#444">${Math.abs(r.I).toFixed(2)} A</text>`);
       break;}
     case 'switch':
       sym=`<line x1="${-T}" y1="0" x2="-34" y2="0" stroke="#555" stroke-width="4"/><line x1="34" y1="0" x2="${T}" y2="0" stroke="#555" stroke-width="4"/>
@@ -939,15 +939,15 @@ function missionHTML(){
     <div class="row">${btn('bulbser','▶ ⑤ 직렬 불러오기')} ${btn('bulbpar','▶ ⑥ 병렬 불러오기')}</div>
     <div class="card"><h3>밝기는 이렇게 비교해요</h3><ol>
       <li>전구가 <b>얼마나 밝은지</b>는 <b>전구에 흐르는 전류 값</b>(A)으로 확인해요. 전류가 클수록 더 밝아요.</li>
-      <li>실험판의 전구 아래 <b>★ 개수</b>와 <b>전류(A)</b>, 아래 표의 <b>밝기(%)</b>를 보세요. 전구 빛의 번쩍임도 달라져요.</li>
+      <li>실험판의 전구 아래 <b>★ 개수(★☆☆ 어두움 · ★★☆ 보통 · ★★★ 밝음)</b>와 <b>전류(A)</b>, 아래 표의 <b>밝기(%)</b>를 보세요. 전구 빛의 번쩍임도 달라져요.</li>
       <li>전구 2개를 <b>직렬</b>로 연결했을 때와 <b>병렬</b>로 연결했을 때, 전구 하나(L1)의 전류를 각각 적어 비교해요.</li>
       <li>전구 1개만 연결했을 때와도 비교해 보세요. 왜 그런지 이유도 생각해 봐요.</li></ol>
       <p class="sel-note">🔸 밝기 100% = 전구에 적힌 6V일 때예요. 이 실험실에서 전구는 저항 10Ω으로 일정하다고 가정했어요.</p></div>
     <div class="card"><h3>💡 지금 실험판의 전구 밝기</h3><div id="bcmp">${bulbRowsHTML()}</div></div>
     <details><summary>🔒 정답·정리 (교사용)</summary><div class="ans">
       <p>전구 1개(6V): I = 0.60 A, 밝기 100%.</p>
-      <p>직렬(전구 2개, 전원 6V): 전구 하나에 3V씩 → I = 0.30 A (어디서 재도 같음), 밝기 25%(P=0.9W). 하나만 켰을 때보다 <b>어두워요</b>. 한 전구가 빠지면 전체가 꺼져요.</p>
-      <p>병렬(전구 2개, 전원 6V): 각 전구에 6V → 각각 0.60 A, 밝기 100%. 전체 전류 A1 = 1.20 A. 1개일 때와 <b>밝기가 같아요</b>. 한 전구가 빠져도 다른 전구는 켜져요.</p>
+      <p>직렬(전구 2개, 전원 6V): 전구 하나에 3V씩 → I = 0.30 A (어디서 재도 같음), 밝기 25%(P=0.9W) → ★☆☆ 어두움. 하나만 켰을 때보다 <b>어두워요</b>. 한 전구가 빠지면 전체가 꺼져요.</p>
+      <p>병렬(전구 2개, 전원 6V): 각 전구에 6V → 각각 0.60 A, 밝기 100% → ★★★ 밝음. 전체 전류 A1 = 1.20 A. 1개일 때와 <b>밝기가 같아요</b>. 한 전구가 빠져도 다른 전구는 켜져요.</p>
       <p>※ 밝기는 전력 P = V × I 로 계산했고, 같은 전구끼리는 전류가 클수록 밝아요.</p></div></details>
   </details>
 
@@ -968,13 +968,16 @@ function meterStatus(c){
   if(Math.abs(c.rd)/r.max<0.15&&Math.abs(c.rd)>1e-9&&c.rng>0)return `<p class="msg info">🔎 바늘이 눈금의 1/6도 안 움직여요. 더 작은 − 단자(${negNames(c)[c.rng-1]})로 옮기면 더 정확히 읽어요.</p>`;
   return '';
 }
-function brightInfo(c){const r0=c.res||{V:0,I:0,P:0};const r={V:Math.abs(r0.V),I:r0.I,P:r0.P};const pct=Math.round(Math.max(0,r.P)/BULB_P*100);const st=Math.round(Math.min(1,pct/100)*5);return {r,pct,st};}
+const BLV=p=>p<1?0:p<40?1:p<80?2:3;
+const STAR=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+const BNAME=['꺼짐','어두움','보통','밝음'];
+function brightInfo(c){const r0=c.res||{V:0,I:0,P:0};const r={V:Math.abs(r0.V),I:r0.I,P:r0.P};const pct=Math.round(Math.max(0,r.P)/BULB_P*100);const st=pct<1?0:pct<40?1:pct<80?2:3;return {r,pct,st};}
 function bulbRowsHTML(){
   const bs=S.comps.filter(c=>c.type==='bulb');
   if(!bs.length)return '<p class="sel-note">실험판에 전구를 놓으면 여기서 밝기를 비교해요.</p>';
   return `<div class="tblwrap"><table><tr><th>전구</th><th>전압 V</th><th>전류 I(A)</th><th>밝기</th></tr>`+
-    bs.map(c=>{const {r,pct,st}=brightInfo(c);return `<tr><td>${c.name}</td><td>${Math.abs(r.V).toFixed(2)}</td><td><b>${Math.abs(r.I).toFixed(2)}</b></td><td style="color:#b45309;font-weight:800">${'★'.repeat(st)}${'☆'.repeat(5-st)} <span style="color:#555;font-weight:600">${pct}%</span></td></tr>`;}).join('')+
-    `</table></div><p class="sel-note">밝기 100% = 전구에 적힌 6V·3.6W로 켰을 때(전류 0.6A). 같은 전구끼리는 <b>전류가 클수록 더 밝아요</b>.</p>`;
+    bs.map(c=>{const {r,pct,st}=brightInfo(c);return `<tr><td>${c.name}</td><td>${Math.abs(r.V).toFixed(2)}</td><td><b>${Math.abs(r.I).toFixed(2)}</b></td><td style="color:#b45309;font-weight:800">${STAR(st)} <span style="color:#555;font-weight:600">${BNAME[st]} (${pct}%)</span></td></tr>`;}).join('')+
+    `</table></div><p class="sel-note">★☆☆ 어두움 · ★★☆ 보통 · ★★★ 밝음. 밝기 100% = 전구에 적힌 6V일 때(전류 0.6A)예요. 같은 전구끼리는 <b>전류가 클수록 더 밝아요</b>.</p>`;
 }
 function liveHTML(){
   const s=UI.sel;if(!s||s.k!=='c')return '';
@@ -982,7 +985,7 @@ function liveHTML(){
   if(c.type==='bulb'){
     const {r,pct,st}=brightInfo(c);
     return `<div class="card"><h3>💡 전구 밝기 보기</h3>
-      <div class="big" style="color:#b45309">${'★'.repeat(st)}${'☆'.repeat(5-st)}</div>
+      <div class="big" style="color:#b45309">${STAR(st)} <span style="font-size:.6em">${BNAME[st]}</span></div>
       <div style="height:12px;border-radius:6px;background:#e9ecef;overflow:hidden;margin:4px 0 6px"><div style="height:100%;width:${Math.min(100,pct)}%;background:linear-gradient(90deg,#ffe066,#ff922b)"></div></div>
       <p>전구에 걸린 전압 <b>${r.V.toFixed(2)} V</b> · 흐르는 전류 <b>${Math.abs(r.I).toFixed(2)} A</b> · 밝기 <b>${pct}%</b></p>
       <p class="sel-note">🔎 전류 값이 <b>클수록 밝고</b>, 작을수록 어두워요. 여러 전구는 <b>전류 값을 서로 비교</b>해 보세요.</p>
